@@ -1,5 +1,5 @@
-require "netutils/version"
 require 'mail'
+require 'netutils/version'
 require 'netutils/switch'
 require 'config/config'
 

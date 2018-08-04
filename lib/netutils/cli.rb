@@ -68,7 +68,7 @@ class CLI
 		@telnetopt['Timeout' ] = TIMEOUT
 		if defined?(LOGDIR)
 			path = File.dirname(__FILE__)
-			path += "/../"
+			path += "/../../"
 			path += "/#{LOGDIR}/#{ia}.log"
 			path = File.expand_path(path).untaint
 			@telnetopt['Output_log'] = path

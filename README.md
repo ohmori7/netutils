@@ -65,7 +65,7 @@ For more detailed information, please consult with a help message of a command.
 
 Ones may think why SNMP is not used to automatically find network equipment.
 The reason is that we have experienced network stalls due to SNMP.
-Receiving the small number of SNMP packets, our core switch, Cisco catalyst 6500, could not forward any packets due to high CPU utilization of even there was no SNMP configuration was enabled.
+Receiving the small number of SNMP packets, our core switch, Cisco catalyst 6500, could not forward any packets due to high CPU utilization even there was no SNMP configuration enabled.
 This was a design issue that all SNMP packets were always punt to CPU of a routing engine.
 We have then decided to employ LLDP and CDP instead of SNMP.
 

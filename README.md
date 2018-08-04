@@ -15,19 +15,20 @@ Netutils currently can:
 * vendor lock free
 * multiple accounts support
 * auto neighbor discovery using Link Layer Discovery Protocol (LLDP) and Cisco Discovery Protocol (CDP)
+* static neighbor definition support
 
 ## Acutually Tested Equipment
 
 * Cisco
-** C1812J, catalyst 6500, 3560, 2960
+	* C1812J, catalyst 6500, 3560, 2960
 * AlaxalA
-** AX8600, AX3800, AX3650, AX2530, AX2200, AX620
+	* AX8600, AX3800, AX3650, AX2530, AX2200, AX620
 * Palo Alto Networks
-** PA-5220, PA-3020, PA-850
+	* PA-5220, PA-3020, PA-850
 * Aruba wireless LAN controller
-** Aruba7210-JP
+	* Aruba7210-JP
 * NEC IX series
-** IX2215, Palo Alto Networks 
+	* IX2215, Palo Alto Networks 
 
 ## Installation
 
@@ -45,6 +46,29 @@ Netutils currently can:
 	$ bundle exec netutils/bin/acl
 	$ bundle exec netutils/bin/port-shutdown
 
+## Example
+
+For example, one can locate a host of a given IP address as follows:
+
+	$ bundle exec bin/host-locate-on-demand 10.0.0.1
+	locating directly connected router for 10.0.0.1... 
+	        "tottori-c01" (192.168.0.1)
+	resolving MAC address for 10.0.0.1... found
+	        10.0.0.1 dead.beef.dead on VRF "1" VLAN1001
+	locating MAC address dead.beef.dead...
+	        tottori-c01 (192.168.0.1) GigabitEthernet 0/1
+	        koyama-e01 (192.168.0.2) GigabitEthernet 0/24
+
+For more detailed information, please consult with a help message of a command.
+
+## Why not SNMP???
+
+Ones may think why SNMP is not used to automatically find network equipment.
+The reason is that we have experienced network stalls due to SNMP.
+Receiving the small number of SNMP packets, our core switch, Cisco catalyst 6500, could not forward any packets due to high CPU utilization of even there was no SNMP configuration was enabled.
+This was a design issue that all SNMP packets were always punt to CPU of a routing engine.
+We have then decided to employ LLDP and CDP instead of SNMP.
+
 ## TODO
 
 * remove global methods
@@ -53,6 +77,7 @@ Netutils currently can:
 * restructure class methods and variables
 * introduce test codes
 * more product support
+* netconf or other REST API support
 
 ## Development
 

@@ -9,9 +9,9 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Motoyuki OHMORI"]
   spec.email         = ["ohmori@tottori-u.ac.jp"]
 
-  spec.summary       = %q{TODO: Write a short summary, because Rubygems requires one.}
-  spec.description   = %q{TODO: Write a longer description or delete this line.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.summary       = %q{Networking utitlities to operate network equipment.}
+  spec.description   = %q{Networking utitlities to operate network equipment made by Cisco, AlaxalA, NEC IX, Palo Alto, Aruba Wireless Controller and so on.}
+  spec.homepage      = "https://github.com/ohmori7/netutils"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.

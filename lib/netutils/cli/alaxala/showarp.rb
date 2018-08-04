@@ -1,5 +1,5 @@
-require 'lib/parser'
-require 'lib/arp'
+require 'netutils/parser'
+require 'netutils/arp'
 
 module Alaxala
 

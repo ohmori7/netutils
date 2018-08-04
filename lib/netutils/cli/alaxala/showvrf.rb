@@ -1,5 +1,5 @@
-require 'lib/parser'
-require 'lib/vrf'
+require 'netutils/parser'
+require 'netutils/vrf'
 
 module Alaxala
 

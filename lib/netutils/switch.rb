@@ -1,5 +1,5 @@
-require 'lib/cli'
-require 'lib/oncequeue'
+require 'netutils/cli'
+require 'netutils/oncequeue'
 
 class Switch
 	module Type

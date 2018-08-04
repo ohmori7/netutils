@@ -5,7 +5,7 @@ require 'net/telnet'
 path = File.expand_path(File.dirname(__FILE__)).untaint
 Dir.glob("#{path}/cli/*") do |path|
 	file = File.basename(path, '.*')
-	require "lib/cli/#{file}"
+	require "netutils/cli/#{file}"
 end
 
 class CLI

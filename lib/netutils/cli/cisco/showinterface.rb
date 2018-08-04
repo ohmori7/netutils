@@ -1,5 +1,5 @@
-require 'lib/parser'
-require 'lib/tunnel'
+require 'netutils/parser'
+require 'netutils/tunnel'
 
 module Cisco
 

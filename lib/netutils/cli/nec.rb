@@ -1,4 +1,4 @@
-require 'lib/cli/nec/lldp'
+require 'netutils/cli/nec/lldp'
 
 module NEC
 	CONFIG_RE = /^(.*\n)$/m

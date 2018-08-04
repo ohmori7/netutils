@@ -1,5 +1,5 @@
-require 'lib/parser'
-require 'lib/rib'
+require 'netutils/parser'
+require 'netutils/rib'
 
 module Cisco
 

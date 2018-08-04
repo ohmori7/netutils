@@ -1,9 +1,9 @@
-require 'lib/cli/alaxala/interface'
-require 'lib/cli/alaxala/lldp'
-require 'lib/cli/alaxala/macfib'
-require 'lib/cli/alaxala/showarp'
-require 'lib/cli/alaxala/showroute'
-require 'lib/cli/alaxala/showvrf'
+require 'netutils/cli/alaxala/interface'
+require 'netutils/cli/alaxala/lldp'
+require 'netutils/cli/alaxala/macfib'
+require 'netutils/cli/alaxala/showarp'
+require 'netutils/cli/alaxala/showroute'
+require 'netutils/cli/alaxala/showvrf'
 
 module Alaxala
 	CONFIG_RE = /\A((?:#configuration list for [^\n]+|#Last modified [^\n]+)\n.*)\n\Z/m

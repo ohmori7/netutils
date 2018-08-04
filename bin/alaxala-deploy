@@ -3,9 +3,9 @@ $:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
 #
 require 'io/console'	# Ruby 1.9.3 or later
 require 'time'
-require 'lib/lib'
 require 'thread'
 require 'optparse'
+require 'netutils'
 
 #
 PATH = '/home/conf/net/certs'

@@ -1,4 +1,4 @@
-require 'lib/fsm'
+require 'netutils/fsm'
 
 class Parser < FSM
 	def initialize

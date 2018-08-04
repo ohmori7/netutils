@@ -1,4 +1,4 @@
-require 'lib/parser'
+require 'netutils/parser'
 
 module Cisco
 

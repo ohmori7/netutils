@@ -1,5 +1,5 @@
-require 'lib/parser'
-require 'lib/switch'
+require 'netutils/parser'
+require 'netutils/switch'
 
 module Alaxala
 

@@ -1,9 +1,9 @@
-require 'lib/cli/cisco/interface'
-require 'lib/cli/cisco/cdp'
-require 'lib/cli/cisco/macfib'
-require 'lib/cli/cisco/showarp'
-require 'lib/cli/cisco/showroute'
-require 'lib/cli/cisco/showvrf'
+require 'netutils/cli/cisco/interface'
+require 'netutils/cli/cisco/cdp'
+require 'netutils/cli/cisco/macfib'
+require 'netutils/cli/cisco/showarp'
+require 'netutils/cli/cisco/showroute'
+require 'netutils/cli/cisco/showvrf'
 
 module Cisco
 	CONFIG_RE = /^.*Current configuration[^\n]+\n(.*)\n.*$/m

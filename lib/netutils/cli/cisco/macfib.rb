@@ -1,5 +1,5 @@
-require 'lib/parser'
-require 'lib/macaddr'
+require 'netutils/parser'
+require 'netutils/macaddr'
 
 module Cisco
 

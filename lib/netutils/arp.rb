@@ -1,4 +1,4 @@
-require 'lib/macaddr'
+require 'netutils/macaddr'
 
 class ARPTable
 	class ARP

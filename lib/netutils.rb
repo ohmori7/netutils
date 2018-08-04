@@ -2,7 +2,6 @@ require "netutils/version"
 require 'mail'
 require 'netutils/switch'
 require 'config/config'
-require 'config/passwd'
 
 module Netutils
 

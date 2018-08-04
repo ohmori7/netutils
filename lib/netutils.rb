@@ -13,6 +13,11 @@ ACL_MAX_SEQ = 4294967294
 #
 $log = ''
 
+end # XXX: module
+
+#
+# XXX: These are global methods!!!!
+#
 def mail(s, b)
 	m = Mail.new do
 		delivery_method :smtp, address: MAILSERVER
@@ -112,6 +117,4 @@ def router_locate(ia)
 		sw = Switch.new(nil, Switch::Type::ROUTER, nh)
 		sw.login
 	end
-end
-
 end

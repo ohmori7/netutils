@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
+
+require 'lib/lib'
+
+################################################################################
+def usage
+	STDERR.print "\
+Usage:
+	#{$progname} [-d] (up|down) <Switch IP address> <port>
+Example:
+	#{$progname} up 192.168.0.1 GigabitEthernet 1/2/3
+	#{$progname} down 192.168.0.2 GigabitEthernet 1/2/3
+"
+	exit 1
+end
+
+#
+if ARGV[0] === '-d'
+	ARGV.shift
+	dry = true
+end
+usage if ARGV.size < 3
+
+#
+cmd  = ARGV.shift
+ia   = ARGV.shift
+port = ARGV.shift
+while ARGV.size > 0
+	port += ' ' + ARGV.shift
+end
+
+#
+case cmd
+when 'up'
+	msg = 'bringing up'
+when 'down'
+	msg = 'shutting down'
+else
+	usage
+end
+
+name = 'unknown'
+begin
+	log_without_newline "Connecting to #{ia}... "
+	sw = Switch.new(nil, Switch::Type::ROUTER, ia)
+	sw.login
+	log 'done'
+	name = sw.name
+
+	port = sw.interface_name(port)
+	interface_sanity_check(name, port)
+	log_without_newline "#{msg.capitalize} #{port} on #{name} (#{ia})... "
+
+	if dry
+		log 'skip (due to -d, dry run, option)'
+		exit 0
+	elsif cmd === 'down'
+		sw.interface_shutdown(port)
+		s = File.expand_path(__FILE__)
+		log 'done'
+		log "please run below command on recovery:\n"
+		log "\t#{s} up #{ia} \'#{port}\'\n"
+	else
+		sw.interface_noshutdown(port)
+		log 'done'
+	end
+	exitcode = 0
+rescue => e
+	r = ' FAILED'
+	log "\n#{r}: #{e.to_s}"
+	log "ERROR: Cannot #{msg} #{port} on #{name} #{ia}"
+	exitcode = 1
+end
+
+mail "Port #{cmd.upcase}#{r}: #{name} #{ia} #{port}", log_buffer
+
+exit exitcode

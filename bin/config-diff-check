@@ -1,0 +1,111 @@
+#!/bin/sh
+dir=`dirname $0`/../../../conf/net
+progname=`basename $0`
+cd $dir
+diffsep=
+diffall=
+tmpdira=a
+tmpdirb=b
+case `uname` in
+Linux|*BSD*)
+	tmpdiropt='-p /tmp'
+	;;
+*)
+	# Darwin does not have -p option...
+	;;
+esac
+tmpdir="`mktemp -u $tmpdiropt -d $progname.XXXXXXXX`"
+#
+usage()
+{
+	echo "
+Usage:
+	$progname -h
+	$progname [-d]
+Description:
+	check to see if a configuration of a network switch generated
+	by \`\`config-gets'' and stored into $dir
+	is changed or not.  Also, revert trivial modification such as
+	NTP drift, a timestamp of a configuration and so on.
+Options:
+	-h:	display this message.
+	-d:	display detailed diff.
+"
+}
+
+if [ ! -z "$1" -a ! "$1" = "-d" ]; then
+	usage
+	exit 1
+fi
+
+#
+# filters to ignore a difference of a configuration of Cisco, Alaxala,
+# Aruba WLC and NEC IX series even though no actual changes are made
+# like below:
+#
+# Cisco:
+# ! Last configuration change at 23:16:01 jst Sat Apr 14 2018 by hogehoge
+# ! NVRAM config last updated at 00:28:45 jst Sun Apr 8 2018 by hogehoge
+#
+# Alaxala:
+# #Last modified by hogehoge at Sun Apr 15 04:00:03 2018 JST with version 12.7.B
+#
+# NEC IX:
+# ! Current time Apr 15-Sun-2018 02:11:02 JST
+#
+regexp="								\
+	-e ^ntp\sclock-period -e ^!\s(N|L|C) -e ^#L			\
+	-e ^\s{3}key\s -e ^\s{3}ap-console-password\s			\
+	-e ^\s{3}bkup-passwords\s -e ^\s{3}wpa-passphrase\s		\
+	"
+grep="grep -E $regexp"
+grepex="grep -Ev $regexp"
+#
+if ! mkdir -p "$tmpdir/$tmpdira" "$tmpdir/$tmpdirb" > /dev/null 2>&1; then
+	echo "Cannot create temporary directory!!!"
+	exit 1
+fi
+for path in *.conf; do
+	file=`basename $path`
+	diff=`git diff "$file"`
+
+	# force to generate diff. for a untracked file.
+	if [ -z "$diff" ]; then
+		if git status "$file" | grep "$file" > /dev/null 2>&1; then
+			diff=`diff -wc /dev/null "$file"`
+		fi
+	fi
+
+	[ -z "$diff" ] && continue
+
+	#
+	# hack for Cisco and Aruba WLC that have different values,
+	# e.g., NTP drift or password hash values, in configuration
+	# output even though the configuration is never modified.
+	#
+	if $grep "$file" > /dev/null 2>&1; then
+		tmpfilea="$tmpdir/$tmpdira/$file"
+		tmpfileb="$tmpdir/$tmpdirb/$file"
+		git show HEAD:./$file |	$grepex > "$tmpfilea"
+		$grepex "$file" > "$tmpfileb"
+		diff=`cd "$tmpdir" &&					\
+		    diff -wc "$tmpdira/$file" "$tmpdirb/$file"`
+		if [ -z "$diff" ]; then
+			git checkout HEAD -- $file
+			continue
+		fi
+	fi
+
+	echo "$file changes"
+	diffall="$diffall$diffsep$diff"
+	diffsep="
+"
+done
+rm -rf "$tmpdira" "$tmpdirb"
+
+if [ -z "$diffall" ]; then
+	echo 'nothing changed.'
+elif [ "$1" = '-d' ]; then
+	echo ''
+	echo "$diffall" | sed -re '/^[^ ]* +block-list \[ / s/\./[.]/g'
+fi

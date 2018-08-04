@@ -1,0 +1,102 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
+
+require 'lib/lib'
+
+################################################################################
+def usage
+	STDERR.print "\
+Usage: #{$progname} [-h] [-d] <host IP address>
+Description:
+	this script also locates an edge switch and a port using LLDP and/or CDP
+	to which an specified host is connected.
+	this script firstly locates a router that directly connects to a specified
+	IP address of a host.  this script then resolves a MAC address of the IP
+	address.  this script finally locates the switch and the port.
+Options:
+	-h:	output this help message.
+	-d:	locate a directly connected router only.
+Bugs:
+	this script may fail to locate a host when the host is already detached
+	from a network or the host does not generate any traffic for a certain
+	duration.
+Example:
+	#{$progname} 192.168.0.1
+"
+        exit
+end
+
+usage if ! ARGV.size.between?(1, 2)
+case ARGV[0]
+when '-h'
+	usage
+when '-d'
+	ARGV.shift
+	connectedonly = true
+end
+usage if ARGV.size != 1
+
+ia = ARGV[0]
+usage if ia !~ /^[0-9\.]+$/
+
+def host_locate(sw, interface, ma)
+	vlan = interface_name_vlan_id(interface)
+	return sw, interface if ! vlan
+
+	sws = {}
+	while true
+		log_without_newline "\t#{sw.name} (#{sw.ia}) "
+		ports = sw.mac_address_table_get(ma, vlan)
+		if ports.size === 0
+			raise "No FIB entry found for #{ma} " +
+			    "on #{sw.name} (#{sw.ia})"
+		end
+		ports.each do |name, port|
+			next if sws.has_key?(sw.name)
+			sws[sw.name] = sw
+
+			log "#{port}"
+
+			ssw = static_neighbor_resolve(sw.name, port)
+			if ssw
+				sw = ssw
+			else
+				nsw = sw.neighbor_gets(port)
+				if ! nsw ||
+				   (nsw.type != Switch::Type::ROUTER &&
+				    nsw.type != Switch::Type::SWITCH)
+					return sw, port
+				end
+				if ! nsw.ia
+					raise "ERROR: #{nsw.name} found but " +
+					    "no IP address!!!"
+				end
+				sw = nsw
+			end
+			sw.login
+			break
+		end
+	end
+end
+
+begin
+	log "locating directly connected router for #{ia}... "
+	sw, xia = router_locate(ia)
+	if ia == xia
+		log "\t\"#{sw.name}\" (#{sw.ia})"
+	else
+		log "\t\"department router\" (#{xia})"
+	end
+
+	exit 0 if connectedonly
+
+	log_without_newline "resolving MAC address for #{xia}... "
+	ma, vrf, interface = sw.macaddr_resolve(xia)
+	log "found"
+	log "\t#{xia} #{ma} on VRF \"#{vrf.name}\" #{interface}"
+
+	log "locating MAC address #{ma}..."
+	sw, port = host_locate(sw, interface, ma)
+rescue => e
+	log " FAILED: #{e.to_s}"
+end

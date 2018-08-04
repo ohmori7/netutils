@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+
+require 'resolv'
+
+DOMAINS = [
+    'officecdn.microsoft.com',
+    'officecdn.microsoft.com.edgesuite.net',
+    'ctldl.windowsupdate.com',
+    'niig4.ocsp.secomtrust.net',
+    'repo1.secomtrust.net',
+    'scrootca1.ocsp.secomtrust.net',
+    'scrootca2.ocsp.secomtrust.net',
+    'repository.secomtrust.net',
+    'ocsp.digicert.com'
+    ]
+
+MAXTTL = 3600
+
+class Domain
+	def initialize(name)
+		@name = name
+		@ias = {}
+	end
+
+	def update
+		expires = @ias
+		@ias = {}
+
+		resolv = Resolv::DNS.new
+		rs = resolv.getresources(@name, Resolv::DNS::Resource::IN::A)
+
+		minttl = MAXTTL
+		rs.each do |r|
+			key = r.address.to_s
+			@ias[key] = r
+			if expires.has_key?(key)
+				expires.delete(key)
+				puts "#{@name}: #{key} update!!!"
+			else
+				puts "#{@name}: #{key} new!!!"
+			end
+			if minttl > r.ttl
+				minttl = r.ttl
+			end
+		end
+		expires.each do |k, v|
+			puts "#{@name}: #{v.address} expires!!!"
+		end
+		return minttl
+	end
+end
+
+domains = []
+DOMAINS.each do |h|
+	domains <<= Domain.new(h)
+end
+
+while true
+	minttl = MAXTTL
+	domains.each do |d|
+		begin
+			ttl = d.update
+		rescue
+			ttl = 1
+		end
+		if minttl > ttl
+			minttl = ttl
+		end
+	end
+	if minttl < 1
+		minttl = 1
+	end
+	sleep minttl
+end

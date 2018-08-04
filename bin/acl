@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
+
+require 'lib/lib'
+
+################################################################################
+def usage(errmsg = nil)
+	progname = File.basename($0)
+	STDERR.print "ERROR: #{errmsg}\n\n" if errmsg
+	STDERR.print "\
+Usage:
+	#{progname} -h
+	#{progname} [-d] (add|delete) <switch> <type> <name> <number> <address>
+Description:
+	configure IP/MAC address filtering on a specified switch.
+Arguments:
+	 switch: an IP address of a switch.
+	   type: access-list type. possible values are:
+		     ip: IP address base
+		    mac: MAC address base (for non IP packet only)
+		advance: MAC address base (Alaxala only)
+  	   name: access-list name.
+	 number: a sequence number of an access list entry.
+	address: a MAC or IP address to be filtered.
+Options:
+	-h:	output this help message.
+	-d:	dry run.
+Example:
+	#{progname} add 192.168.0.1 advance INCIDENT-FILTER 999 dead.beef.dead
+	#{progname} delete 192.168.0.2 advance INCIDENT-FILTER 999 dead.beef.dead
+"
+        exit 1
+end
+
+usage if ARGV[0] === '-h'
+if ARGV[0] === '-d'
+	ARGV.shift
+	dry = true
+end
+
+case ARGV.size
+when 6
+else
+	usage("Wrong number (#{ARGV.size}) of arguments")
+end
+
+cmd = ARGV.shift
+case cmd
+when 'add'
+	add = true
+when 'delete'
+else
+	usage("Invalid command: #{cmd}")
+end
+
+swname = 'unknown'
+ia = ARGV.shift
+type = ARGV.shift
+name = ARGV.shift
+seq = ARGV.shift.to_i
+addr = ARGV.shift
+
+usage("Invalid IP address format: #{ia}") if ia !~ /^[0-9\.]+$/
+# we assume that max. sequence # is used for ``permit any any''
+usage if seq >= ACL_MAX_SEQ
+
+begin
+	log_without_newline "#{cmd} a filter for #{addr} on #{ia}... "
+	sw = Switch.new(nil, Switch::Type::ROUTER, ia)
+	sw.login
+	swname = sw.name
+	if ! sw.acl_exists?(type, name)
+		raise(ArgumentError, "No such ACL found: #{type} #{name}")
+	end
+	if dry
+		log_without_newline "(skip due to dry run)... "
+	elsif add
+		sw.acl_add(type, name, addr, seq)
+	else
+		sw.acl_delete(type, name, seq)
+	end
+	log 'done'
+	if add
+		m = "please run below command on recovery:\n"
+		s = File.expand_path(__FILE__)
+		m += "\t#{s} delete #{ia} #{type} #{name} #{seq} #{addr}\n"
+		puts m
+	else
+		m = "Allow traffic from #{addr} on #{swname}\n"
+	end
+	exitcode = 0
+rescue => e
+	r = ' FAILED'
+	m = e.to_s
+	puts "\n#{r}: #{m}"
+	exitcode = 1
+end
+
+#
+m += <<EOL
+
+log:
+#{log_buffer}
+EOL
+
+#
+mail "Filter #{cmd.upcase}#{r}: #{addr} on #{swname} (#{ia})", m
+
+exit exitcode

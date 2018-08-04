@@ -1,0 +1,271 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
+#
+require 'io/console'	# Ruby 1.9.3 or later
+require 'time'
+require 'lib/lib'
+require 'thread'
+require 'optparse'
+
+#
+PATH = '/home/conf/net/certs'
+CERT = "#{WEBAUTH_HOST}.cer"
+KEY  = "#{WEBAUTH_HOST}.key"
+INT  = 'nii-odca3sha2.cer'
+CERTFILES = [
+    CERT,
+    KEY,
+    INT
+    ]
+#
+HTML = '/home/conf/net/html/wired'
+HTMLFILES = [
+    'favicon.ico',
+    'login.html',
+    'loginNG.html',
+    'loginOK.html',
+    'loginProcess.html',
+    'logout.html',
+    'logoutNG.html',
+    'logoutOK.html',
+    'webauth.msg'
+    ]
+HTMLDIR = 'html'	# a directory on a switch for HTML files
+#
+def usage(errmsg = nil)
+	progname = File.basename($0)
+	STDERR.print "ERROR: #{errmsg}\n\n" if errmsg
+	STDERR.print "\
+Usage:
+	#{progname} -h
+	#{progname} [-c] [-w] [-r] -a
+	#{progname} [-c] [-w] [-r] <switch IP address1> <switch IP address2> ...
+Description:
+	deploy files to Alaxala switches, such as certificate files (i.e.,
+	certificate itself, private key, intermediate CA certificate), HTML
+	files for Web authentication.
+	If an option, ``-a,'' is given, deploy to all switches using LLDP or
+	CDP.  All files should be placed into the FTP server,
+		#{FTP_SERVER}:#{PATH} (for certificate files),
+		#{FTP_SERVER}:#{HTML} (for HTML files),
+	in advance.
+Arguments:
+	switch IP address: an IP address of a switch.
+Options:
+	-h:	output this help message.
+	-c:	deploy certificate files.
+	-w:	deploy HTML files.
+	-r:	reload a switch if necessary (only for certificate files).
+	-a:	deploy to all switches.
+Example:
+	output information:
+		#{progname} 192.168.0.1
+		#{progname} -a
+	installing certificate files:
+		#{progname} -c 192.168.0.1
+		#{progname} -c -a
+	installing certificate and HTML files:
+		#{progname} -c -w 192.168.0.1
+		#{progname} -c -w -a
+	reload switches if and only if necessary (only for certificate files):
+		#{progname} -r 192.168.0.1
+		#{progname} -r -a
+"
+        exit 1
+end
+
+##
+# inject() requires Ruby2.4... take a more operational way.
+options0 = ARGV.getopts('hcwra', 'help', 'certificate', 'web', 'reload', 'all')
+options = {}
+options0.map { |k, v| options[k.to_sym] = v }
+
+usage if options[:h]
+if options[:a]
+	if ARGV.length != 0
+		usage('Extra argument specified')
+	end
+	Switch.set_retrieve_all
+	SWITCHES.each { |name, ia| Switch.new(name, Switch::Type::ROUTER, ia, ) }
+elsif ARGV.length > 0
+	ARGV.each do |ia|
+		Switch.new(nil, Switch::Type::ROUTER, ia)
+	end
+else
+	usage('No IP address is given.')
+end
+
+##
+user = nil
+password = nil
+if options[:c] || options[:w]
+	print 'Input FTP user name: '
+	user = STDIN.gets.strip
+	print 'Input FTP password: '
+	password = STDIN.noecho(&:gets).strip
+	puts
+end
+
+##
+reboots = Queue.new
+Switch.retrieve do |sw|
+	if sw.name
+		print "Connecting: ``#{sw.name}'' (#{sw.ia})\n"
+	else
+		print "Connecting: #{sw.ia}\n"
+	end
+	sw.login
+	msg = " Connected: ``#{sw.name}'' (#{sw.ia}) (#{sw.maker_to_s} " +
+	    "#{sw.product})"
+	if sw.maker != CLI::Maker::ALAXALA
+		puts "#{msg} SKIP non-Alaxala equipment."
+		next
+	end
+	config = sw.config_get
+	if config !~ /web-authentication system-auth-control/m
+		puts "#{msg} SKIP no Web authentication configured."
+		next
+	end
+	puts msg
+	r = sw.cmd('show web-authentication ssl-crt')
+	# SSL key               : default now
+	# SSL certificate       : 2018/04/03 20:04:11
+	# SSL intermediate cert : 2018/04/03 20:04:11
+	sep = ''
+	installedtime = nil
+	msg = " #{sw.name} (#{sw.ia}): CERT:"
+	r.scan(/SSL ([^:]*) : ([^\n]+)/) do |k, v|
+		k.strip!
+		v.strip!
+		if v =~ /^default/
+			v = 'none'
+		elsif installedtime === nil
+			installedtime = Time.parse(v)
+		end
+		msg += "#{sep} #{k}: #{v}"
+		sep = ','
+	end
+	r = sw.cmd('show system')
+	if r =~ /^.*Boot Date[^:]+: ([^\n]+).*$/
+		v = $1.strip
+		boottime = Time.parse(v)
+		msg += ", boot: #{v}"
+		if boottime < installedtime || options[:c]
+			reboots.push(sw)
+			msg += ' (need reboot)'
+		end
+	end
+	puts msg
+
+	#
+	r = sw.cmd('show web-authentication html-files')
+	sep = ''
+	msg = " #{sw.name} (#{sw.ia}): HTML:"
+	r.scan(/^ +([0-9\/]+ [0-9:]+) + ([0-9,]+) ([^\n]+)/) do |date, size, f|
+		date.strip!
+		size.strip!
+		f.strip!
+		msg += "#{sep} #{f} #{size} (#{date})"
+		sep = ','
+	end
+	puts msg
+
+	next if ! options[:c] && ! options[:w]
+
+	oprompt = sw.prompt
+	sw.cmd("ftp #{FTP_SERVER}", 'Name: ')
+	sw.cmd(user, 'Password:')
+	r = sw.cmd(password, "ftp> |#{oprompt}")
+	if r =~ /530 Login incorrect./
+		raise('Invalid FTP password')
+	end
+	r = sw.cmd('passive')
+	r += sw.cmd('bin')
+	if options[:c]
+		r += sw.cmd("cd #{PATH}")
+		CERTFILES.each { |f| r += sw.cmd("get #{f}") }
+		if r =~ /Failed/
+			raise('cannot get certificate files')
+		end
+	end
+	htmlfiles = nil
+	if options[:w]
+		r  = sw.cmd("cd #{HTML}")
+		r += sw.cmd('mget *', 'mget.*\? ?')
+		r += sw.cmd('a', 'ftp> ')
+		if r =~ /Failed/
+			raise('cannot get html files')
+		end
+		htmlfiles = r.scan(/nnection for ([^ ]+) /).collect { |a| a[0] }
+		HTMLFILES.each do |f|
+			next if htmlfiles.include?(f)
+			raise("missing HTML file: #{f}")
+		end
+	end
+	sw.cmd('exit', oprompt)
+	if options[:c]
+		sw.cmd('set web-authentication ssl-crt', '[^:]+: ')
+		sw.cmd(KEY)
+		sw.cmd(CERT)
+		sw.cmd(INT, '[^:]+:')
+		sw.cmd('y', oprompt)
+		CERTFILES.each { |f| sw.cmd("del ramdisk #{f}") }
+	end
+	if options[:w]
+		#
+		# here create a directory and move files in order to avoid that
+		# unnecessary files are loaded into HTML files area.
+		#
+		sw.cmd("mkdir ramdisk #{HTMLDIR}")
+		htmlfiles.each do |f|
+			# they do not have ``move''...sign...
+			sw.cmd("copy ramdisk #{f} ramdisk #{HTMLDIR}")
+			sw.cmd("del ramdisk #{f}")
+		end
+
+		sw.cmd("set web-authentication html-files ramdisk #{HTMLDIR}",
+		    '[^:]+: ')
+		# Do you wish to install new html-files? (y/n): y
+		sw.cmd('y', oprompt)
+
+		# okay remove our files.
+		htmlfiles.each do |f|
+			sw.cmd("del ramdisk #{HTMLDIR}/#{f}")
+		end
+		sw.cmd("rmdir ramdisk #{HTMLDIR}")
+	end
+	print "      Done: ``#{sw.name}'' (#{sw.ia}) " +
+	    "(#{sw.maker_to_s} #{sw.product})\n"
+end
+Switch.warn
+
+exit if ! options[:r]
+
+thread_concurrency = 64
+threads = []
+for i in 1..thread_concurrency do
+	threads <<= Thread.new do
+		begin
+			while sw = reboots.pop(true) do
+				sw.configure
+				sw.cmd('save')
+				sw.unconfigure
+				begin
+					#
+					# note that pager configuration or
+					# other configurations barks without
+					# an option, ``-f.''
+					#
+					sw.cmd('reload -f')
+				rescue
+				end
+				puts "   Reboot: ``#{sw.name}'' (#{sw.ia}) done"
+			end
+		rescue
+		end
+	end
+end
+
+threads.each do |thread|
+	thread.join
+end

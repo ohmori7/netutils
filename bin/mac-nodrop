@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
+
+require 'lib/lib'
+
+################################################################################
+def usage
+	progname = File.basename($0)
+	STDERR.print "\
+Usage: #{progname} <Switch name> <IP address> <MAC address> <existing VLAN>
+Example:
+	#{progname} hoge-cisco-01 192.168.0.1 de:ad:be:ef:de:ad
+"
+        exit
+end
+
+def mac_nodrop(name, ia, mac, vlan)
+	sw = Switch.new(name, ia)
+	sw.login
+	sw.configure
+	for vid in vlans_by_switch_name(name, vlan) do
+		cmd = "no mac-address-table static #{mac} vlan #{vid}"
+		log_without_newline "\t#{cmd}\n"
+		sw.cmd(cmd)
+	end
+	sw.unconfigure
+end
+
+usage if ARGV.size != 4
+name = ARGV[0]
+ia   = ARGV[1]
+mac = ARGV[2]
+vlan = ARGV[3]
+
+begin
+        log_without_newline "setting to \"#{name}\"(#{ia})\n\n"
+	mac_nodrop(name, ia, mac, vlan)
+	log "\nRe-enable #{mac} on #{name} #{ia}"
+rescue => e
+	r = ' FAILED'
+	log e.to_s
+	log "\ncannot allow traffic #{mac} on #{name} #{ia}"
+end
+
+mail "MAC NODROP#{r}: #{name} #{ia} #{mac}", log_buffer

@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
+
+require 'lib/lib'
+#
+def usage(errmsg = nil)
+	progname = File.basename($0)
+	STDERR.print "ERROR: #{errmsg}\n\n" if errmsg
+	STDERR.print "\
+Usage:
+	#{progname} -h
+	#{progname} [-a] <switch IP address1> <switch IP address2> ...
+Description:
+	retrieve configurations of network switches.  If an option, ``-a,''
+	is specified, retrieve from all neighboring switches as well using
+	LLDP or CDP.
+Arguments:
+	switch IP address:
+		an IP address of a switch.  If no IP address is given,
+		pre-defined IP addresses are used.
+Options:
+	-h:	output this help message.
+	-a:	try to find all neighboring switches.
+Example:
+	#{progname} 192.168.0.1
+	#{progname} -a 192.168.0.1
+"
+        exit 1
+end
+
+if ARGV[0] === '-h'
+	ARGV.shift
+	usage
+end
+if ARGV[0] === '-a'
+	ARGV.shift
+	Switch.set_retrieve_all
+end
+if ARGV.length > 0
+	ARGV.each do |ia|
+		Switch.new(nil, Switch::Type::ROUTER, ia)
+	end
+else
+	SWITCHES.each { |name, ia| Switch.new(name, Switch::Type::ROUTER, ia) }
+end
+
+Switch.retrieve do |sw|
+	start = Time.now
+	if sw.name
+		print "Connecting: ``#{sw.name}'' (#{sw.ia})\n"
+	else
+		print "Connecting: #{sw.ia}\n"
+	end
+	sw.login
+	duration = Time.now - start
+	print " Connected: ``#{sw.name}'' (#{sw.ia}) (#{sw.maker_to_s} #{sw.product}) (#{duration} seconds)\n"
+	sw.config_get
+	sw.config_dump(File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/../../../conf/net'))
+	#switch.if_dump
+	#switch.if_dump_csv
+	print "      Done: ``#{sw.name}'' (#{sw.ia}) (#{sw.maker_to_s} #{sw.product})\n"
+end
+Switch.warn
+

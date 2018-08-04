@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
+
+require 'lib/lib'
+
+################################################################################
+def usage
+	progname = File.basename($0)
+	STDERR.print "\
+Usage: ruby #{progname} [-h] [-d] <IP address>
+Options:
+	-d:	dry run (do not shut down a port, just locate a host only)
+	-h:	output this help message.
+Example:
+	#{progname} 192.168.0.1
+"
+        exit
+end
+
+case ARGV.size
+when 1
+	usage if ARGV[0] !~ /^[0-9\.]+$/
+when 2
+	usage if ARGV.shift != '-d'
+	dry = true
+else
+	usage
+end
+usage if ARGV.size != 1
+
+ia = ARGV[0]
+
+swname = swia = xia = ma = 'unknown'
+begin
+	log "locate directly connected router for #{ia}... "
+	sw, xia = router_locate(ia)
+	swname = sw.name
+	swia = sw.ia
+	if ia == xia
+		log "\t\"#{sw.name}\" (#{sw.ia})"
+	else
+		log "\t\"department router\" (#{xia})"
+	end
+
+	log_without_newline "resolving MAC address for #{xia}... "
+	ma, vrf, interface = sw.macaddr_resolve(xia)
+	log "found"
+	log "\t#{xia} #{ma} on VRF \"#{vrf.name}\" #{interface}"
+
+	vlan = interface_name_vlan_id(interface)
+	log_without_newline "setting to \"#{sw.name}\" (#{sw.ia})\n"
+
+	if dry
+		log 'skip (due to -d, dry run, option)'
+		exit 0
+	else
+		sw.configure
+
+		for vid in vlans_by_switch_name(swname, vlan) do
+			cmd = "mac-address-table static #{ma} vlan #{vid} drop"
+			log_without_newline "\t#{cmd}"
+			sw.cmd(cmd)
+		end
+
+		sw.unconfigure
+		log 'done'
+
+		s = File.join(File.dirname(__FILE__), 'mac-no-drop.rb')
+		s = File.expand_path(s)
+		log "please run below command on recovery:\n"
+		log "\t#{s} #{sw.name} #{sw.ia} #{ma} #{vlan}\n"
+	end
+	exitcode = 0
+rescue => e
+	r = ' FAILED'
+	log "\n#{r}: #{e.to_s}"
+	log "ERROR: Cannot MAC DROP #{xia} (#{ma}) on #{swname} #{swia} for " +
+	    "#{ia}"
+	exitcode = 1
+end
+
+mail "MAC DROP#{r}: #{swname} (#{swia}) for #{xia} (#{ma})", log_buffer
+
+exit exitcode

@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["ohmori@tottori-u.ac.jp"]
 
   spec.summary       = %q{Networking utitlities to operate network equipment.}
-  spec.description   = %q{Networking utitlities to operate network equipment made by Cisco, AlaxalA, NEC IX, Palo Alto, Aruba Wireless Controller and so on.}
+  spec.description   = %q{Networking utitlities to operate network equipment made by Cisco, AlaxalA, NEC IX, Palo Alto, Aruba Wireless LAN Controller and so on.}
   spec.homepage      = "https://github.com/ohmori7/netutils"
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|

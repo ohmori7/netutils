@@ -86,7 +86,9 @@ if options[:a]
 		usage('Extra argument specified')
 	end
 	Switch.set_retrieve_all
-	SWITCHES.each { |name, ia| Switch.new(name, Switch::Type::ROUTER, ia, ) }
+	SWITCHES.each do |name, ia|
+		Switch.new(name, Switch::Type::ROUTER, ia, )
+	end
 elsif ARGV.length > 0
 	ARGV.each do |ia|
 		Switch.new(nil, Switch::Type::ROUTER, ia)

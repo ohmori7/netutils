@@ -190,6 +190,7 @@ class Switch
 		#
 		# retrieve interfaces because many commands require
 		# interface name.
+		# XXX: should improve this...
 		#
 		interface_gets
 	end

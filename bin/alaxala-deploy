@@ -224,7 +224,7 @@ Switch.retrieve do |sw|
 		boottime = Time.parse(v)
 		msg += ", boot: #{v}"
 		if boottime < installedtime || options[:c] || options[:f]
-			vertices.push(sw)
+			v = vertices.push(sw)
 			msg += ' (need reboot)'
 		end
 	end
@@ -316,10 +316,14 @@ retrieve_end_time = Time.now
 
 exit if ! options[:r]
 
+reboot_times = [ Time.now ]
+reboot_counts = []
+
 thread_concurrency = 64
 for rdepth in 1 .. vertices.maxdepth do
 	depth = vertices.maxdepth - rdepth + 1
-	puts "examine: #{depth} depth"
+	reboot_counts[depth] = vertices.length(depth)
+	puts "examine: #{depth}-th depth (#{vertices.length(depth)} switches)"
 	threads = []
 	for i in 1..thread_concurrency do
 		threads <<= Thread.new do
@@ -351,11 +355,17 @@ for rdepth in 1 .. vertices.maxdepth do
 	threads.each do |thread|
 		thread.join
 	end
-end
 
-reboot_end_time = Time.now
+	reboot_times.push(Time.now)
+end
 
 puts "Retrieve time : #{retrieve_start_time.iso8601(3)}" +
     " (#{retrieve_end_time - retrieve_start_time})"
-puts "   Reboot time: #{retrieve_end_time.iso8601(3)}" +
-    " (#{reboot_end_time - retrieve_end_time})"
+puts "   Reboot time: #{reboot_times.first.iso8601(3)}" +
+    " (#{reboot_times.last - reboot_times.first})"
+
+for depth in 0 .. reboot_times.size - 1 do
+	printf "% 10d-th depth: % 4d switches: " +
+	    "#{reboot_times[depth] - reboot_times[depth - 1]}\n",
+	    depth, reboot_counts[depth]
+end

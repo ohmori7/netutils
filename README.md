@@ -71,6 +71,8 @@ We have then decided to employ LLDP and CDP instead of SNMP.
 
 ## TODO
 
+* AlaxalA null character handling
+* configuration file
 * clean up code, name space issues, and switch class method abandon
 * more gemification
 * remove global methods

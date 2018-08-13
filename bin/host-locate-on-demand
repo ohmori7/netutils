@@ -57,7 +57,7 @@ def host_locate(sw, interface, ma)
 
 			log "#{port}"
 
-			ssw = static_neighbor_resolve(sw.name, port)
+			ssw = static_neighbor_resolve(sw, port)
 			if ssw
 				sw = ssw
 			else

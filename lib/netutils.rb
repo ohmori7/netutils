@@ -70,11 +70,11 @@ def interface_name_vlan_id(name)
 	nil
 end
 
-def static_neighbor_resolve(name, ifname)
-	key = "#{name}_#{ifname}"
+def static_neighbor_resolve(sw, ifname)
+	key = "#{sw.name}_#{ifname}"
 	n = STATIC_NEIGHBOR[key]
 	return nil if n.nil?
-	Switch.get(n[:name], Switch::Type::ROUTER, nil, nil, nil, n[:ia])
+	Switch.get(n[:name], Switch::Type::ROUTER, nil, nil, nil, n[:ia], sw)
 end
 
 def tunnel_nexthop_resolve(sw, rt)

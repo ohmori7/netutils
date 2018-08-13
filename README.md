@@ -71,6 +71,8 @@ We have then decided to employ LLDP and CDP instead of SNMP.
 
 ## TODO
 
+* clean up code, name space issues, and switch class method abandon
+* more gemification
 * remove global methods
 * use yaml for configuration
 * out-of-band CLI output message handling (partially done but..)

@@ -107,7 +107,7 @@ class CDP < Parser
 				time = 'unknown'
 			end
 			@rsw = Switch.get(@rdevid, @type, @platform, @firmware,
-			    time, ia)
+			    time, ia, @sw)
 			@sw.ports[@lport].peers.add(@rsw, @rport)
 			changeto('Init')
 		end

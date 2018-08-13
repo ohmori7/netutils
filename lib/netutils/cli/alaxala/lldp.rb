@@ -158,7 +158,7 @@ class LLDP < Parser
 			time = 'unknown'
 		end
 		static_neighbor_resolve(@sw, lport)
-		@rsw = Switch.get(rname, type, platform, firmware, time)
+		@rsw = Switch.get(rname, type, platform, firmware, time, nil, @sw)
 		@sw.ports[lport].peers.add(@rsw, nil) # XXX: no way to know remote port...
 	end
 end

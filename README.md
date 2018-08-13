@@ -28,7 +28,7 @@ Netutils currently can:
 * Aruba wireless LAN controller
 	* Aruba7210-JP
 * NEC IX series
-	* IX2215, Palo Alto Networks 
+	* IX2215
 
 ## Installation
 

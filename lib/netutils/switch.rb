@@ -155,13 +155,14 @@ class Switch
 	@@unretrieved = OnceQueue.new
 	@@warn = Array.new
 
-	def initialize(name, type, ia, retrieve = true)
+	def initialize(name, type, ia, retrieve = true, parent = nil)
 		name_set(name)
 		@type = type
 		@ports = Ports.new
 		@retrieve = retrieve
 		@cli = nil
 		ip_address_set(ia)
+		@parent = parent
 
 		return self
 	end
@@ -310,7 +311,7 @@ class Switch
 	end
 
 	def self.get(name, type, platform = nil, firmware = nil, time = nil,
-	    ia = nil)
+	    ia = nil, parent = nil)
 		# XXX should lock
 		if @@db.key?(name)
 			sw = @@db[name]
@@ -319,7 +320,7 @@ class Switch
 			sw.time = time if sw.time == nil
 			sw.ip_address_set(ia)
 		else
-			sw = Switch.new(name, type, ia, @@retrieve_all)
+			sw = Switch.new(name, type, ia, @@retrieve_all, parent)
 		end
 		return sw
 	end

@@ -75,6 +75,73 @@ Example:
 end
 
 ##
+ROOT_DEPTH = 0
+
+class Vertices
+	class Vertex
+		attr_reader :sw, :depth
+
+		def initialize(sw)
+			@sw = sw
+			depth_compute
+		end
+
+		def depth
+			@sw.note
+		end
+
+		def depth_compute
+			return if ! @sw.note.nil?
+			depth = 0
+			nparent = @sw.parent
+			loop do
+				parent = nparent
+				if parent.nil?
+					break
+				end
+				nparent = parent.parent
+				if ! parent.nil?
+					depth += parent.note
+					break
+				end
+			end
+			@sw.note = depth + 1
+		end
+	end
+
+	attr_reader :maxdepth
+
+	def initialize
+		@vertices = []
+		@maxdepth = 0
+		@mutex = Thread::Mutex.new
+	end
+
+	def length(depth)
+		@vertices[depth].length
+	end
+
+	def push(sw)
+		v = Vertex.new(sw)
+		@mutex.synchronize do
+			if @vertices[v.depth].nil?
+				@vertices[v.depth] = Queue.new
+			end
+		end
+		@vertices[v.depth].push(v)
+		if v.depth > @maxdepth
+			@maxdepth = v.depth
+		end
+	end
+
+	def pop(depth)
+		@vertices[depth].pop(true)
+	end
+end
+
+vertices = Vertices.new
+
+##
 # inject() requires Ruby2.4... take a more operational way.
 options0 = ARGV.getopts('hcwra', 'help', 'certificate', 'web', 'reload', 'all')
 options = {}
@@ -87,11 +154,11 @@ if options[:a]
 	end
 	Switch.set_retrieve_all
 	SWITCHES.each do |name, ia|
-		Switch.new(name, Switch::Type::ROUTER, ia, )
+		vertices.push(Switch.new(name, Switch::Type::ROUTER, ia, ))
 	end
 elsif ARGV.length > 0
 	ARGV.each do |ia|
-		Switch.new(nil, Switch::Type::ROUTER, ia)
+		vertices.push(Switch.new(nil, Switch::Type::ROUTER, ia))
 	end
 else
 	usage('No IP address is given.')
@@ -109,7 +176,6 @@ if options[:c] || options[:w]
 end
 
 ##
-reboots = Queue.new
 Switch.retrieve do |sw|
 	if sw.name
 		print "Connecting: ``#{sw.name}'' (#{sw.ia})\n"
@@ -153,7 +219,7 @@ Switch.retrieve do |sw|
 		boottime = Time.parse(v)
 		msg += ", boot: #{v}"
 		if boottime < installedtime || options[:c]
-			reboots.push(sw)
+			vertices.push(sw)
 			msg += ' (need reboot)'
 		end
 	end
@@ -244,30 +310,35 @@ Switch.warn
 exit if ! options[:r]
 
 thread_concurrency = 64
-threads = []
-for i in 1..thread_concurrency do
-	threads <<= Thread.new do
-		begin
-			while sw = reboots.pop(true) do
-				sw.configure
-				sw.cmd('save')
-				sw.unconfigure
-				begin
-					#
-					# note that pager configuration or
-					# other configurations barks without
-					# an option, ``-f.''
-					#
-					sw.cmd('reload -f')
-				rescue
+for rdepth in 1 .. vertices.maxdepth do
+	depth = vertices.maxdepth - rdepth + 1
+	puts "examine: #{depth} depth"
+	threads = []
+	for i in 1..thread_concurrency do
+		threads <<= Thread.new do
+			begin
+				while v = vertices.pop(depth) do
+					sw = v.sw
+					sw.configure
+					sw.cmd('save')
+					sw.unconfigure
+					begin
+						#
+						# note that pager configuration or
+						# other configurations barks without
+						# an option, ``-f.''
+						#
+						sw.cmd('reload -f')
+					rescue
+					end
+					puts "   Reboot: ``#{sw.name}'' (#{sw.ia}) done"
 				end
-				puts "   Reboot: ``#{sw.name}'' (#{sw.ia}) done"
+			rescue
 			end
-		rescue
 		end
 	end
-end
 
-threads.each do |thread|
-	thread.join
+	threads.each do |thread|
+		thread.join
+	end
 end

@@ -319,7 +319,6 @@ exit if ! options[:r]
 thread_concurrency = 64
 for rdepth in 1 .. vertices.maxdepth do
 	depth = vertices.maxdepth - rdepth + 1
-	puts vertices.maxdepth
 	puts "examine: #{depth} depth"
 	threads = []
 	for i in 1..thread_concurrency do

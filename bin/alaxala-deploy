@@ -102,7 +102,7 @@ class Vertices
 					break
 				end
 				nparent = parent.parent
-				if ! parent.nil?
+				if ! parent.note.nil?
 					depth += parent.note + 1
 					break
 				end

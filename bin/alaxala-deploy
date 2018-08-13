@@ -331,17 +331,18 @@ for rdepth in 1 .. vertices.maxdepth do
 						sw.configure
 						sw.cmd('save')
 						sw.unconfigure
+						#
+						# note that pager configuration
+						# or other configurations barks 
+						# without an option, ``-f.''
+						#
 						begin
-							#
-							# note that pager configuration or
-							# other configurations barks without
-							# an option, ``-f.''
-							#
 							sw.cmd('reload -f')
 						rescue
 						end
 					end
-					puts "   Reboot: ``#{sw.name}'' (#{sw.ia}) done"
+					puts "   Reboot: ``#{sw.name}'' " +
+					    "(#{sw.ia}) done"
 				end
 			rescue
 			end
@@ -355,5 +356,7 @@ end
 
 reboot_end_time = Time.now
 
-puts "Retrieve time : #{retrieve_start_time.iso8601(3)} (#{retrieve_end_time - retrieve_start_time})"
-puts "   Reboot time: #{retrieve_end_time.iso8601(3)} (#{reboot_end_time - retrieve_end_time})"
+puts "Retrieve time : #{retrieve_start_time.iso8601(3)}" +
+    " (#{retrieve_end_time - retrieve_start_time})"
+puts "   Reboot time: #{retrieve_end_time.iso8601(3)}" +
+    " (#{reboot_end_time - retrieve_end_time})"

@@ -101,11 +101,11 @@ class Vertices
 				end
 				nparent = parent.parent
 				if ! parent.nil?
-					depth += parent.note
+					depth += parent.note + 1
 					break
 				end
 			end
-			@sw.note = depth + 1
+			@sw.note = depth
 		end
 	end
 

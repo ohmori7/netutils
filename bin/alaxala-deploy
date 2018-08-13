@@ -114,7 +114,7 @@ class Vertices
 	attr_reader :maxdepth
 
 	def initialize
-		@vertices = []
+		@vertices = [ Queue.new ]
 		@maxdepth = 0
 		@mutex = Thread::Mutex.new
 	end
@@ -134,6 +134,7 @@ class Vertices
 		if v.depth > @maxdepth
 			@maxdepth = v.depth
 		end
+		return v
 	end
 
 	def pop(depth)
@@ -157,11 +158,11 @@ if options[:a]
 	end
 	Switch.set_retrieve_all
 	SWITCHES.each do |name, ia|
-		vertices.push(Switch.new(name, Switch::Type::ROUTER, ia, ))
+		Switch.new(name, Switch::Type::ROUTER, ia, ).note = 0
 	end
 elsif ARGV.length > 0
 	ARGV.each do |ia|
-		vertices.push(Switch.new(nil, Switch::Type::ROUTER, ia))
+		Switch.new(nil, Switch::Type::ROUTER, ia).note = 0
 	end
 else
 	usage('No IP address is given.')
@@ -319,8 +320,8 @@ reboot_times = [ Time.now ]
 reboot_counts = []
 
 thread_concurrency = 64
-for rdepth in 1 .. vertices.maxdepth do
-	depth = vertices.maxdepth - rdepth + 1
+for rdepth in 0 .. vertices.maxdepth do
+	depth = vertices.maxdepth - rdepth
 	reboot_counts[depth] = vertices.length(depth)
 	puts "examine: #{depth}-th depth (#{vertices.length(depth)} switches)"
 	threads = []
@@ -363,8 +364,8 @@ puts "Retrieve time : #{retrieve_start_time.iso8601(3)}" +
 puts "   Reboot time: #{reboot_times.first.iso8601(3)}" +
     " (#{reboot_times.last - reboot_times.first})"
 
-for depth in 0 .. reboot_times.size - 1 do
+for depth in 0 .. vertices.maxdepth do
 	printf "% 10d-th depth: % 4d switches: " +
-	    "#{reboot_times[depth] - reboot_times[depth - 1]}\n",
+	    "#{reboot_times[depth + 1] - reboot_times[depth]}\n",
 	    depth, reboot_counts[depth]
 end

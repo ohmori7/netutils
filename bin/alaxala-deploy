@@ -176,6 +176,8 @@ if options[:c] || options[:w]
 end
 
 ##
+retrieve_start_time = Time.now
+
 Switch.retrieve do |sw|
 	if sw.name
 		print "Connecting: ``#{sw.name}'' (#{sw.ia})\n"
@@ -307,11 +309,14 @@ Switch.retrieve do |sw|
 end
 Switch.warn
 
+retrieve_end_time = Time.now
+
 exit if ! options[:r]
 
 thread_concurrency = 64
 for rdepth in 1 .. vertices.maxdepth do
 	depth = vertices.maxdepth - rdepth + 1
+	puts vertices.maxdepth
 	puts "examine: #{depth} depth"
 	threads = []
 	for i in 1..thread_concurrency do
@@ -342,3 +347,8 @@ for rdepth in 1 .. vertices.maxdepth do
 		thread.join
 	end
 end
+
+reboot_end_time = Time.now
+
+puts "Retrieve time : #{retrieve_start_time.iso8601(3)} (#{retrieve_end_time - retrieve_start_time})"
+puts "   Reboot time: #{retrieve_end_time.iso8601(3)} (#{reboot_end_time - retrieve_end_time})"

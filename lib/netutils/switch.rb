@@ -147,7 +147,7 @@ class Switch
 		end
 	end
 
-	attr_reader :name, :type, :ports, :ia
+	attr_reader :name, :type, :ports, :ia, :parent
 	attr_accessor :platform, :firmware, :time, :note
 
 	@@retrieve_all = false

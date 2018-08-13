@@ -175,7 +175,6 @@ if options[:c] || options[:w]
 	user = STDIN.gets.strip
 	print 'Input FTP password: '
 	password = STDIN.noecho(&:gets).strip
-	puts
 end
 
 ##

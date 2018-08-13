@@ -38,8 +38,8 @@ def usage(errmsg = nil)
 	STDERR.print "\
 Usage:
 	#{progname} -h
-	#{progname} [-c] [-w] [-r] -a
-	#{progname} [-c] [-w] [-r] <switch IP address1> <switch IP address2> ...
+	#{progname} [-c] [-d] [-f] [-w] [-r] -a
+	#{progname} [-c] [-d] [-f] [-w] [-r] <switch IP address 1> ...
 Description:
 	deploy files to Alaxala switches, such as certificate files (i.e.,
 	certificate itself, private key, intermediate CA certificate), HTML
@@ -54,6 +54,8 @@ Arguments:
 Options:
 	-h:	output this help message.
 	-c:	deploy certificate files.
+	-d:	dry run (do not actually reboot).
+	-f:	force to consider all switches as requiring reboots.
 	-w:	deploy HTML files.
 	-r:	reload a switch if necessary (only for certificate files).
 	-a:	deploy to all switches.
@@ -143,7 +145,8 @@ vertices = Vertices.new
 
 ##
 # inject() requires Ruby2.4... take a more operational way.
-options0 = ARGV.getopts('hcwra', 'help', 'certificate', 'web', 'reload', 'all')
+options0 = ARGV.getopts(
+    'hcdfwra', 'help', 'certificate', 'dry', 'force', 'web', 'reload', 'all')
 options = {}
 options0.map { |k, v| options[k.to_sym] = v }
 
@@ -220,7 +223,7 @@ Switch.retrieve do |sw|
 		v = $1.strip
 		boottime = Time.parse(v)
 		msg += ", boot: #{v}"
-		if boottime < installedtime || options[:c]
+		if boottime < installedtime || options[:c] || options[:f]
 			vertices.push(sw)
 			msg += ' (need reboot)'
 		end
@@ -324,17 +327,19 @@ for rdepth in 1 .. vertices.maxdepth do
 			begin
 				while v = vertices.pop(depth) do
 					sw = v.sw
-					sw.configure
-					sw.cmd('save')
-					sw.unconfigure
-					begin
-						#
-						# note that pager configuration or
-						# other configurations barks without
-						# an option, ``-f.''
-						#
-						sw.cmd('reload -f')
-					rescue
+					if ! options[:d]
+						sw.configure
+						sw.cmd('save')
+						sw.unconfigure
+						begin
+							#
+							# note that pager configuration or
+							# other configurations barks without
+							# an option, ``-f.''
+							#
+							sw.cmd('reload -f')
+						rescue
+						end
 					end
 					puts "   Reboot: ``#{sw.name}'' (#{sw.ia}) done"
 				end

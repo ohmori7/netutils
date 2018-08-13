@@ -180,8 +180,20 @@ end
 
 ##
 retrieve_start_time = Time.now
+maxrealdepth = 0
 
 Switch.retrieve do |sw|
+	# for statistics purpose only
+	realdepth = 0
+	parent = sw.parent
+	while ! parent.nil?
+		realdepth += 1
+		parent = parent.parent
+	end
+	if realdepth > maxrealdepth
+		maxrealdepth = realdepth
+	end
+	#
 	if sw.name
 		print "Connecting: ``#{sw.name}'' (#{sw.ia})\n"
 	else
@@ -359,6 +371,7 @@ for rdepth in 0 .. vertices.maxdepth do
 	reboot_times.push(Time.now)
 end
 
+puts "max real depth: #{maxrealdepth}"
 puts "Retrieve time : #{retrieve_start_time.iso8601(3)}" +
     " (#{retrieve_end_time - retrieve_start_time})"
 puts "   Reboot time: #{reboot_times.first.iso8601(3)}" +

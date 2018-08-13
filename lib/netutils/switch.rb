@@ -148,7 +148,7 @@ class Switch
 	end
 
 	attr_reader :name, :type, :ports, :ia
-	attr_accessor :platform, :firmware, :time
+	attr_accessor :platform, :firmware, :time, :note
 
 	@@retrieve_all = false
 	@@db = Hash.new
@@ -163,6 +163,7 @@ class Switch
 		@cli = nil
 		ip_address_set(ia)
 		@parent = parent
+		@note = nil
 
 		return self
 	end

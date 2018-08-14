@@ -71,6 +71,7 @@ We have then decided to employ LLDP and CDP instead of SNMP.
 
 ## TODO
 
+* old Ruby (1.8.x) support that OS package system installs
 * AlaxalA null character handling
 * configuration file
 * clean up code, name space issues, and switch class method abandon

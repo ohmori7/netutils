@@ -158,11 +158,11 @@ if options[:a]
 	end
 	Switch.set_retrieve_all
 	SWITCHES.each do |name, ia|
-		Switch.new(name, Switch::Type::ROUTER, ia, ).note = 0
+		Switch.new(name, Switch::Type::ROUTER, ia, )
 	end
 elsif ARGV.length > 0
 	ARGV.each do |ia|
-		Switch.new(nil, Switch::Type::ROUTER, ia).note = 0
+		Switch.new(nil, Switch::Type::ROUTER, ia)
 	end
 else
 	usage('No IP address is given.')

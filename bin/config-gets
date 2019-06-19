@@ -3,6 +3,10 @@ $:.unshift File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/..')
 
 require 'netutils'
 #
+if ! defined?(CONFDIR)
+	CONFDIR = File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/../../../conf/net')
+end
+#
 def usage(errmsg = nil)
 	progname = File.basename($0)
 	STDERR.print "ERROR: #{errmsg}\n\n" if errmsg
@@ -55,7 +59,7 @@ Switch.retrieve do |sw|
 	duration = Time.now - start
 	print " Connected: ``#{sw.name}'' (#{sw.ia}) (#{sw.maker_to_s} #{sw.product}) (#{duration} seconds)\n"
 	sw.config_get
-	sw.config_dump(File.join(File.expand_path(File.dirname(__FILE__)).untaint, '/../../../conf/net'))
+	sw.config_dump(CONFDIR)
 	#switch.if_dump
 	#switch.if_dump_csv
 	print "      Done: ``#{sw.name}'' (#{sw.ia}) (#{sw.maker_to_s} #{sw.product})\n"

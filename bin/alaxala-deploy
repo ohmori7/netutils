@@ -222,7 +222,7 @@ Switch.retrieve do |sw|
 	r.scan(/SSL ([^:]*) : ([^\n]+)/) do |k, v|
 		k.strip!
 		v.strip!
-		if v =~ /^default/
+		if v =~ /^(?:-|default)/
 			v = 'none'
 		elsif installedtime === nil
 			installedtime = Time.parse(v)
@@ -235,7 +235,8 @@ Switch.retrieve do |sw|
 		v = $1.strip
 		boottime = Time.parse(v)
 		msg += ", boot: #{v}"
-		if boottime < installedtime || options[:c] || options[:f]
+		if options[:c] || options[:f] ||
+		    (! installedtime.nil? && boottime < installedtime)
 			v = vertices.push(sw)
 			msg += ' (need reboot)'
 		end

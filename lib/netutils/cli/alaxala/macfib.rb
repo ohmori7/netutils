@@ -20,7 +20,7 @@ class MACFIB < Parser
 	AX8600_RE = /^[0-9a-z.]+\s+[0-9]+\s+[^\s]+\s+[0-9]+\s+[^\s]+\s+([0-9\/,\-]+)$/
 
 	def cmd(ma, vlan)
-		mac = "mac " if @sw.product =~ /^AX2[0-9]{3}/
+		mac = "mac " if @sw.product =~ /^AX2[0-9]{2,3}/
 		return "show mac-address-table #{mac}#{ma.to_s} vlan #{vlan}"
 	end
 
